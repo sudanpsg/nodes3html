@@ -16,8 +16,8 @@ const path = require( 'path' );
 //});
 
 const s3 = new aws.S3({
-	accessKeyId: 'AKIAI23PLTFG2M4OSJLQ',
-	secretAccessKey: '82hvMrBLXGm9Qd8DCzM0q6lrnuQq77VDZt7ltC6Q',
+	accessKeyId: '',
+	secretAccessKey: '',
 	Bucket: 'test-dummy-upload'
 });
 
