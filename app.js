@@ -1,38 +1,57 @@
 const express = require('express');
-const multer = require('multer');
 const ejs = require('ejs');
-const path = require('path');
+//const path = require('path');
+const aws = require( 'aws-sdk' );
+const multerS3 = require( 'multer-s3' );
+//const multerS3 = require( 'multer-s3' );
+const multer = require('multer');
+const path = require( 'path' );
 
 // Set The Storage Engine
-const storage = multer.diskStorage({
-  destination: './public/uploads/',
-  filename: function(req, file, cb){
-    cb(null,file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-  }
+//const storage = multer.diskStorage({
+//  destination: './public/uploads/',
+//  filename: function(req, file, cb){
+//    cb(null,file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+//  }
+//});
+
+const s3 = new aws.S3({
+	accessKeyId: 'AKIAI23PLTFG2M4OSJLQ',
+	secretAccessKey: '82hvMrBLXGm9Qd8DCzM0q6lrnuQq77VDZt7ltC6Q',
+	Bucket: 'test-dummy-upload'
 });
 
+const profileImgUpload = multer({
+	storage: multerS3({
+		s3: s3,
+		bucket: 'test-dummy-upload',
+		acl: 'public-read',
+		key: function (req, file, cb) {
+			cb(null, path.basename( file.originalname, path.extname( file.originalname ) ) + '-' + Date.now() + path.extname( file.originalname ) )
+		}
+	}),
+	limits:{ fileSize: 2000000 }, // In bytes: 2000000 bytes = 2 MB
+	fileFilter: function( req, file, cb ){
+		checkFileType( file, cb );
+	}
+}).single('profileImage');
+
 // Init Upload
-const upload = multer({
-  storage: storage,
-  limits:{fileSize: 1000000},
-  fileFilter: function(req, file, cb){
-    checkFileType(file, cb);
-  }
-}).single('myImage');
+
 
 // Check File Type
 function checkFileType(file, cb){
-  // Allowed ext
-  const filetypes = /jpeg|jpg|png|gif/;
-  // Check ext
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  // Check mime
-  const mimetype = filetypes.test(file.mimetype);
 
-  if(mimetype && extname){
-    return cb(null,true);
-  } else {
-    cb('Error: Images Only!');
+ const filetypes = /jpeg|jpg|png|gif|pdf/;
+  // Check ext
+ const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+
+ const mimetype = filetypes.test(file.mimetype);
+
+ if(mimetype && extname){
+   return cb(null,true);
+} else {
+   cb('Error: Images and PDF Only!');
   }
 }
 
@@ -48,24 +67,35 @@ app.use(express.static('./public'));
 app.get('/', (req, res) => res.render('index'));
 
 app.post('/upload', (req, res) => {
-  upload(req, res, (err) => {
-    if(err){
-      res.render('index', {
-        msg: err
-      });
-    } else {
-      if(req.file == undefined){
-        res.render('index', {
-          msg: 'Error: No File Selected!'
-        });
-      } else {
-        res.render('index', {
-          msg: 'File Uploaded!',
-          file: `uploads/${req.file.filename}`
-        });
-      }
-    }
-  });
+  profileImgUpload( req, res, ( error ) => {
+		console.log( 'requestOkokok', req.file );
+		console.log( 'error', error );
+		if( error ){
+			console.log( 'errors', error );
+			res.json( { error: error } );
+		} else {
+			// If File not found
+			if( req.file === undefined ){
+				console.log( 'Error: No File Selected!' );
+				res.json( 'Error: No File Selected' );
+			} else {
+				// If Success
+				const imageName = req.file.key;
+				const imageLocation = req.file.location;
+// Save the file name into database into profile model
+		//		res.json( {
+		//			image: imageName,
+		//			location: imageLocation
+		//		} );
+        res.render('index',{
+          msg:"File upload completed!",
+          image:imageLocation
+        })
+        res.status(200).send()
+
+			}
+		}
+	});
 });
 
 const port = 3000;
