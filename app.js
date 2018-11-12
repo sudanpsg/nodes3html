@@ -18,13 +18,13 @@ const path = require( 'path' );
 const s3 = new aws.S3({
 	accessKeyId: '',
 	secretAccessKey: '',
-	Bucket: 'test-dummy-upload'
+	Bucket: 's3demoupload1'
 });
 
 const profileImgUpload = multer({
 	storage: multerS3({
 		s3: s3,
-		bucket: 'test-dummy-upload',
+		bucket: 's3demoupload1',
 		acl: 'public-read',
 		key: function (req, file, cb) {
 			cb(null, path.basename( file.originalname, path.extname( file.originalname ) ) + '-' + Date.now() + path.extname( file.originalname ) )
